@@ -63,7 +63,6 @@ impl Window {
                     .with_flex_child(Self::write_button(WriteValue::Digit2), SPACE)
                     .with_flex_child(Self::write_button(WriteValue::Digit3), SPACE)
                     .with_flex_child(Self::clear_button(), SPACE),
-                    
                 SPACE,
             )
     }
