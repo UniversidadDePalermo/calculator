@@ -3,6 +3,103 @@ use std::fmt::Display;
 use druid::{Data, Lens};
 use thiserror::Error;
 
+/// Writeable Values
+#[derive(Clone, Debug)]
+pub enum WriteValue {
+    Digit0,
+    Digit1,
+    Digit2,
+    Digit3,
+    Digit4,
+    Digit5,
+    Digit6,
+    Digit7,
+    Digit8,
+    Digit9,
+    DigitA,
+    DigitB,
+    DigitC,
+    DigitD,
+    DigitE,
+    DigitF,
+}
+
+impl WriteValue {
+    /// Returs the character representation of the `WriteValue`
+    pub fn into_char(&self) -> char {
+        match self {
+            WriteValue::Digit0 => '0',
+            WriteValue::Digit1 => '1',
+            WriteValue::Digit2 => '2',
+            WriteValue::Digit3 => '3',
+            WriteValue::Digit4 => '4',
+            WriteValue::Digit5 => '5',
+            WriteValue::Digit6 => '6',
+            WriteValue::Digit7 => '7',
+            WriteValue::Digit8 => '8',
+            WriteValue::Digit9 => '9',
+            WriteValue::DigitA => 'A',
+            WriteValue::DigitB => 'B',
+            WriteValue::DigitC => 'C',
+            WriteValue::DigitD => 'D',
+            WriteValue::DigitE => 'E',
+            WriteValue::DigitF => 'F',
+        }
+    }
+
+    /// Checks if the Digit is valid for the provided `Base`
+    pub fn is_allowed_for_base(&self, b: Base) -> bool {
+        match b {
+            Base::Binary => match self {
+                WriteValue::Digit0 | WriteValue::Digit1 => true,
+                _ => false,
+            },
+            Base::Octal => match self {
+                WriteValue::Digit0
+                | WriteValue::Digit1
+                | WriteValue::Digit2
+                | WriteValue::Digit3
+                | WriteValue::Digit4
+                | WriteValue::Digit5
+                | WriteValue::Digit6
+                | WriteValue::Digit7 => true,
+                _ => false,
+            },
+            Base::Decimal => match self {
+                WriteValue::Digit0
+                | WriteValue::Digit1
+                | WriteValue::Digit2
+                | WriteValue::Digit3
+                | WriteValue::Digit4
+                | WriteValue::Digit5
+                | WriteValue::Digit6
+                | WriteValue::Digit7
+                | WriteValue::Digit8
+                | WriteValue::Digit9 => true,
+                _ => false,
+            },
+            Base::Hexa => match self {
+                WriteValue::Digit0
+                | WriteValue::Digit1
+                | WriteValue::Digit2
+                | WriteValue::Digit3
+                | WriteValue::Digit4
+                | WriteValue::Digit5
+                | WriteValue::Digit6
+                | WriteValue::Digit7
+                | WriteValue::Digit8
+                | WriteValue::Digit9
+                | WriteValue::DigitA
+                | WriteValue::DigitB
+                | WriteValue::DigitC
+                | WriteValue::DigitD
+                | WriteValue::DigitE
+                | WriteValue::DigitF => true,
+            },
+        }
+    }
+}
+
 #[derive(Clone, Debug, Error)]
 pub enum StateError {
     #[error("Invalid character provided {0}. Current base is {1}")]
@@ -35,10 +132,10 @@ impl Display for Base {
 #[derive(Clone, Data, Lens)]
 pub struct State {
     /// Specifies the current base
-    base: Base,
+    pub(super) base: Base,
     /// Represents the `inner_value` in Base-N where `N` could be
     /// either Binary, Octal, Decimal or Hexa.
-    value: String,
+    pub(super) value: String,
 }
 
 impl Default for State {
@@ -52,7 +149,9 @@ impl Default for State {
 
 impl State {
     /// Writes a digit to the internal value tracker
-    pub fn write(&mut self, string: char) -> Result<()> {
+    pub fn write(&mut self, value: &WriteValue) -> Result<()> {
+        let string = value.into_char();
+
         match self.base {
             Base::Binary => {
                 if string == '0' || string == '1' {
@@ -106,7 +205,7 @@ impl State {
     }
 
     /// Set different mode
-    pub fn set_base(&mut self, next_base: Base) {
+    pub fn set_base(&mut self, next_base: &Base) {
         if self.value.is_empty() {
             // Cannot parse a int from an empty string
             self.value = String::from("0");
@@ -135,19 +234,19 @@ impl State {
             }
         }
 
-        self.base = next_base;
+        self.base = next_base.to_owned();
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Base, State};
+    use super::{Base, State, WriteValue};
 
     #[test]
     fn writes_digit_to_value() {
         let mut state = State::default();
 
-        state.write('1').unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
 
         assert_eq!(state.value, "1");
     }
@@ -156,9 +255,9 @@ mod tests {
     fn accumulates_values_from_left_to_right() {
         let mut state = State::default();
 
-        state.write('1').unwrap();
-        state.write('2').unwrap();
-        state.write('3').unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::Digit2).unwrap();
+        state.write(&WriteValue::Digit3).unwrap();
 
         assert_eq!(state.value, "123");
     }
@@ -167,9 +266,9 @@ mod tests {
     fn clears_internal_value_tracker() {
         let mut state = State::default();
 
-        state.write('1').unwrap();
-        state.write('2').unwrap();
-        state.write('3').unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::Digit2).unwrap();
+        state.write(&WriteValue::Digit3).unwrap();
 
         assert_eq!(state.value, "123");
 
@@ -185,7 +284,7 @@ mod tests {
 
         assert_eq!(state.base, Base::Decimal);
 
-        state.set_base(Base::Hexa);
+        state.set_base(&Base::Hexa);
 
         assert_eq!(state.base, Base::Hexa);
     }
@@ -196,10 +295,10 @@ mod tests {
 
         assert_eq!(state.base, Base::Decimal);
 
-        state.write('2').unwrap();
-        state.write('7').unwrap();
+        state.write(&WriteValue::Digit2).unwrap();
+        state.write(&WriteValue::Digit7).unwrap();
 
-        state.set_base(Base::Binary);
+        state.set_base(&Base::Binary);
 
         assert_eq!(state.base, Base::Binary);
         assert_eq!(state.value, String::from("11011"));
@@ -209,15 +308,15 @@ mod tests {
     fn changes_base_from_bin_to_dec() {
         let mut state = State::default();
 
-        state.set_base(Base::Binary);
+        state.set_base(&Base::Binary);
 
-        state.write('1').unwrap();
-        state.write('1').unwrap();
-        state.write('0').unwrap();
-        state.write('1').unwrap();
-        state.write('1').unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::Digit0).unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
 
-        state.set_base(Base::Decimal);
+        state.set_base(&Base::Decimal);
 
         assert_eq!(state.base, Base::Decimal);
         assert_eq!(state.value, String::from("27"));
@@ -227,15 +326,15 @@ mod tests {
     fn changes_base_from_oct_to_dec() {
         let mut state = State::default();
 
-        state.set_base(Base::Octal);
+        state.set_base(&Base::Octal);
 
-        state.write('1').unwrap();
-        state.write('7').unwrap();
-        state.write('0').unwrap();
-        state.write('3').unwrap();
-        state.write('4').unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::Digit7).unwrap();
+        state.write(&WriteValue::Digit0).unwrap();
+        state.write(&WriteValue::Digit3).unwrap();
+        state.write(&WriteValue::Digit4).unwrap();
 
-        state.set_base(Base::Decimal);
+        state.set_base(&Base::Decimal);
 
         assert_eq!(state.base, Base::Decimal);
         assert_eq!(state.value, String::from("7708"));
@@ -245,14 +344,14 @@ mod tests {
     fn changes_base_from_dec_to_oct() {
         let mut state = State::default();
 
-        state.set_base(Base::Decimal);
+        state.set_base(&Base::Decimal);
 
-        state.write('7').unwrap();
-        state.write('7').unwrap();
-        state.write('0').unwrap();
-        state.write('8').unwrap();
+        state.write(&WriteValue::Digit7).unwrap();
+        state.write(&WriteValue::Digit7).unwrap();
+        state.write(&WriteValue::Digit0).unwrap();
+        state.write(&WriteValue::Digit8).unwrap();
 
-        state.set_base(Base::Octal);
+        state.set_base(&Base::Octal);
 
         assert_eq!(state.base, Base::Octal);
         assert_eq!(state.value, String::from("17034"));
@@ -262,19 +361,19 @@ mod tests {
     fn changes_base_from_dec_to_hex() {
         let mut state = State::default();
 
-        state.set_base(Base::Decimal);
+        state.set_base(&Base::Decimal);
 
-        state.write('1').unwrap();
-        state.write('7').unwrap();
-        state.write('0').unwrap();
-        state.write('8').unwrap();
-        state.write('2').unwrap();
-        state.write('8').unwrap();
-        state.write('8').unwrap();
-        state.write('2').unwrap();
-        state.write('9').unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::Digit7).unwrap();
+        state.write(&WriteValue::Digit0).unwrap();
+        state.write(&WriteValue::Digit8).unwrap();
+        state.write(&WriteValue::Digit2).unwrap();
+        state.write(&WriteValue::Digit8).unwrap();
+        state.write(&WriteValue::Digit8).unwrap();
+        state.write(&WriteValue::Digit2).unwrap();
+        state.write(&WriteValue::Digit9).unwrap();
 
-        state.set_base(Base::Hexa);
+        state.set_base(&Base::Hexa);
 
         assert_eq!(state.base, Base::Hexa);
         assert_eq!(state.value, String::from("A2EA41D"));
@@ -284,17 +383,17 @@ mod tests {
     fn changes_base_from_hex_to_dec() {
         let mut state = State::default();
 
-        state.set_base(Base::Hexa);
+        state.set_base(&Base::Hexa);
 
-        state.write('A').unwrap();
-        state.write('2').unwrap();
-        state.write('E').unwrap();
-        state.write('A').unwrap();
-        state.write('4').unwrap();
-        state.write('1').unwrap();
-        state.write('D').unwrap();
+        state.write(&WriteValue::DigitA).unwrap();
+        state.write(&WriteValue::Digit2).unwrap();
+        state.write(&WriteValue::DigitE).unwrap();
+        state.write(&WriteValue::DigitA).unwrap();
+        state.write(&WriteValue::Digit4).unwrap();
+        state.write(&WriteValue::Digit1).unwrap();
+        state.write(&WriteValue::DigitD).unwrap();
 
-        state.set_base(Base::Decimal);
+        state.set_base(&Base::Decimal);
 
         assert_eq!(state.base, Base::Decimal);
         assert_eq!(state.value, String::from("170828829"));
