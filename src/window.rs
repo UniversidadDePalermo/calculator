@@ -61,9 +61,35 @@ impl Window {
                     .with_flex_child(Self::write_button(WriteValue::Digit0), SPACE)
                     .with_flex_child(Self::write_button(WriteValue::Digit1), SPACE)
                     .with_flex_child(Self::write_button(WriteValue::Digit2), SPACE)
-                    .with_flex_child(Self::write_button(WriteValue::Digit3), SPACE),
+                    .with_flex_child(Self::write_button(WriteValue::Digit3), SPACE)
+                    .with_flex_child(Self::clear_button(), SPACE),
+                    
                 SPACE,
             )
+    }
+
+    fn clear_button() -> impl Widget<State> {
+        let background_config = Painter::new(|ctx: _, _: _, _: _| {
+            let bounds = ctx.size().to_rect();
+
+            ctx.fill(bounds, &Color::grey(0.9));
+
+            if ctx.is_hot() {
+                ctx.stroke(bounds.inset(-0.5), &Color::grey(0.6), 1.0);
+            }
+
+            if ctx.is_active() {
+                ctx.fill(bounds, &Color::grey(1.0));
+            }
+        });
+
+        Label::new(String::from("AC"))
+            .with_text_color(Color::BLACK)
+            .with_text_size(24.)
+            .center()
+            .background(background_config)
+            .expand()
+            .on_click(move |_ctx, data: &mut State, _env| data.clear())
     }
 
     /// Creates a Button to Write digits
