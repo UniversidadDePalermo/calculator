@@ -152,6 +152,10 @@ impl State {
     pub fn write(&mut self, value: &WriteValue) -> Result<()> {
         let string = value.into_char();
 
+        if self.value == "0" {
+            self.value = String::default();
+        }
+
         match self.base {
             Base::Binary => {
                 if string == '0' || string == '1' {
@@ -181,7 +185,7 @@ impl State {
                 let string = string.to_ascii_lowercase();
 
                 if string >= '0' && string <= '9' || string >= 'a' && string <= 'f' {
-                    self.value.push(string);
+                    self.value.push(string.to_ascii_uppercase());
                     return Ok(());
                 }
 
