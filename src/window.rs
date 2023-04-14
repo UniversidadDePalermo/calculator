@@ -116,7 +116,11 @@ impl Window {
             .disabled_if(move |data: &State, _| !value_clone.is_allowed_for_base(data.base))
             .background(background_config)
             .expand()
-            .on_click(move |_ctx, data: &mut State, _env| data.write(&value).unwrap())
+            .on_click(move |ctx, data: &mut State, _env| {
+                if value.is_allowed_for_base(data.base) && !ctx.is_disabled() {
+                    data.write(&value).unwrap();
+                }
+            })
     }
 
     /// Creates a Button to Write digits
